@@ -1,22 +1,30 @@
 package github.spencerb.garcore;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.function.BiConsumer;
 
-import net.fabricmc.api.ModInitializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.loot.v3.LootTableEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.advancements.criterion.DataComponentMatchers;
 import net.minecraft.advancements.criterion.ItemPredicate;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.GlobalPos;
 import net.minecraft.core.HolderGetter;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.contents.PlainTextContents;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.storage.loot.LootPool;
 import net.minecraft.world.level.storage.loot.LootTable;
@@ -27,22 +35,26 @@ import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
 import net.minecraft.core.component.DataComponentExactPredicate;
 import net.minecraft.core.component.DataComponents;
 
-// Next I want to make a dispenser that will smelt a log into a dried kelp block if you craft 9 cobblestone and a charcoal together.
-// https://docs.fabricmc.net/develop/serialization/saved-data
-// Need to look into this.
-
 public class GarCore implements ModInitializer {
+	
+	public static final String MOD_ID = "garcore";
+	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
 	private HashMap<ResourceKey<LootTable>, BiConsumer<LootTable.Builder, HolderLookup.Provider>> lootTableHandlers;
+	private MachineSystem systems;
 
 	@Override
 	public void onInitialize() {
 
-		System.out.println("GarCore Engaged!");
+		LOGGER.info("GarCore Engaged!");
 
 		lootTableHandlers = new HashMap<ResourceKey<LootTable>, BiConsumer<LootTable.Builder, HolderLookup.Provider>>();
-
-		lootTableHandlers.put(Blocks.DIRT.getLootTable().orElseThrow(), GarCore::injectPactLore);
+		lootTableHandlers.put(Blocks.IRON_BLOCK.getLootTable().orElseThrow(), GarCore::injectPactLore);
+		
+		systems = new MachineSystem();
+		TestMachine testMachine = new TestMachine();
+		
+		systems.machines.put(GlobalPos.of(Level.OVERWORLD, BlockPos.containing(0, 70, 0)), testMachine);
 
 		LootTableEvents.MODIFY.register((key, tableBuilder, source, registries) -> {
 
@@ -50,6 +62,25 @@ public class GarCore implements ModInitializer {
 			}).accept(tableBuilder, registries);
 
 		});
+		
+		ServerTickEvents.END_LEVEL_TICK.register(level -> {
+			
+			Iterator<HashMap.Entry<GlobalPos, TestMachine>> it =
+					systems.machines.entrySet().iterator();
+			
+			while(it.hasNext()) {
+				var entry = it.next();
+				GlobalPos machinePos = entry.getKey();
+				if(!machinePos.dimension().equals(level.dimension())) {
+					continue;
+				}
+				
+				TestMachine machine = entry.getValue();
+				machine.tickMachine(level, machinePos.pos(), it);
+				
+			}
+		});
+		
 	} // end main
 
 	private static void injectPactLore(LootTable.Builder tableBuilder, HolderLookup.Provider registries) {
@@ -59,12 +90,12 @@ public class GarCore implements ModInitializer {
 						.withComponents(DataComponentMatchers.Builder.components()
 								.exact(DataComponentExactPredicate.builder()
 										.expect(DataComponents.CUSTOM_NAME,
-												MutableComponent.create(PlainTextContents.create("My Fealty")))
+												MutableComponent.create(PlainTextContents.create("My Will")))
 										.build())
 								.build())))
 				.add(LootItem.lootTableItem(Items.DANDELION)
 						.apply(SetComponentsFunction.setComponent(DataComponents.ITEM_NAME,
-								MutableComponent.create(PlainTextContents.create("Your Association"))
+								MutableComponent.create(PlainTextContents.create("Your Feality"))
 										.withColor(ChatFormatting.DARK_RED.getColor()))));
 
 		tableBuilder.withPool(pool);
