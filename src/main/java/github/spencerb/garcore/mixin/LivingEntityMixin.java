@@ -4,6 +4,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import github.spencerb.garcore.IntermediateItems;
 import github.spencerb.garcore.RitualDagger;
 
 import org.spongepowered.asm.mixin.injection.At;
@@ -15,6 +16,8 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
+
+// TODO: investigate why this doesn't work on the server.
 @Mixin(LivingEntity.class)
 public class LivingEntityMixin {
 
@@ -44,7 +47,7 @@ public class LivingEntityMixin {
 		}
 		
 		LivingEntity victim = (LivingEntity)(Object)this;
-		victim.spawnAtLocation(level, RitualDagger.getBlood());
+		victim.spawnAtLocation(level, IntermediateItems.getBlood());
 	}
 	
 }

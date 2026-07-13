@@ -7,7 +7,12 @@ import java.util.function.BiConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import github.spencerb.garcore.chestcraft.CultChestRecipe;
+import github.spencerb.garcore.chestcraft.CultChestRecipes;
+import github.spencerb.garcore.chestcraft.RecipeKey;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.loot.v3.LootTableEvents;
 import net.minecraft.ChatFormatting;
@@ -31,6 +36,7 @@ import net.minecraft.world.level.storage.loot.functions.SetComponentsFunction;
 import net.minecraft.world.level.storage.loot.predicates.MatchTool;
 import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
 import net.minecraft.core.component.DataComponentExactPredicate;
+import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.component.DataComponents;
 
 public class GarCore implements ModInitializer {
@@ -72,6 +78,22 @@ public class GarCore implements ModInitializer {
 			}
 
 			return InteractionResult.PASS;
+		});
+		
+		UseBlockCallback.EVENT.register((player, world, hand, hitResult) -> {
+			
+			ItemStack handItem = player.getItemInHand(hand);
+			
+			if (MyWill.isMyWill(handItem)) {
+				return MyWill.myWillInteraction(player, world, hitResult);
+			}
+			
+			return InteractionResult.PASS;
+		});
+		
+		
+		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+			CultChestRecipes.Register(server.registryAccess());
 		});
 		
 		
